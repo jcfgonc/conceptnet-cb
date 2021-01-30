@@ -35,7 +35,7 @@ public class ConceptNetStudy {
 		Ticker ticker = new Ticker();
 		String path = "kb/conceptnet5v43_no_invalid_chars.csv";
 
-		StringGraph graph = new StringGraph(1 << 24, 1 << 24, 1 << 24, 1 << 24);
+		StringGraph graph = new StringGraph();
 
 		System.out.println("loading... " + path);
 
