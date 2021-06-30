@@ -33,7 +33,7 @@ import utils.VariousUtils;
 public class ConceptNetStudy {
 	public static void main(String[] args) throws Exception {
 		Ticker ticker = new Ticker();
-		String path = "kb/conceptnet5v43_no_invalid_chars.csv";
+		String path = "D:\\Desktop\\Java - PhD\\BlenderMO\\data\\conceptnet5v44.csv";
 
 		StringGraph graph = new StringGraph();
 
@@ -41,18 +41,22 @@ public class ConceptNetStudy {
 
 		ticker.getTimeDeltaLastCall();
 		GraphReadWrite.readCSV(path, graph);
-		ObjectIndex<String> vertexLabels = new ObjectIndex<>();
-		ObjectIndex<String> relationLabels = new ObjectIndex<>();
-		GraphAlgorithms.convertStringGraph2IntDirectedMultiGraph(graph, vertexLabels, relationLabels);
+//		ObjectIndex<String> vertexLabels = new ObjectIndex<>();
+//		ObjectIndex<String> relationLabels = new ObjectIndex<>();
+//		GraphAlgorithms.convertStringGraph2IntDirectedMultiGraph(graph, vertexLabels, relationLabels);
 		// GraphReadWrite.readCSV_highPerformance(path, graph);
 		// graph.showStructureSizes();
-		System.out.println(ticker.getTimeDeltaLastCall());
+//		System.out.println(ticker.getTimeDeltaLastCall());
 
-		System.out.println("vertices\t" + graph.getVertexSet().size());
-		System.out.println("edges   \t" + graph.edgeSet().size());
+//		System.out.println("vertices\t" + graph.getVertexSet().size());
+		// System.out.println("edges \t" + graph.edgeSet().size());
 		// showRelationCount(graph);
-		System.out.println("-------");
-
+//		System.out.println("-------");
+		// studyConcepts(graph);
+		getDirectedConceptsOfRelation(graph, "hassubevent", false, 2);
+//		showRelationCount(graph);
+//		System.out.println("-------");
+//		studyDegree(graph);
 		{
 			// graph.renameVertex("vertebrate", "vertebrata");
 			// generalizeGraph(graph);
@@ -64,7 +68,7 @@ public class ConceptNetStudy {
 			// removeDisconnectedEdges(graph);
 			// removeRelationsWithLabel(graph, "isa");
 			// HashSet<String> part = extractRandomPart(graph);
-		//	PatternFinderSwiProlog.findPatterns(graph);
+			// PatternFinderSwiProlog.findPatterns(graph);
 		}
 
 		// ticker.getTimeDeltaLastCall();
@@ -640,26 +644,25 @@ public class ConceptNetStudy {
 		degreeCounter.toSystemOut();
 	}
 
-	/**
-	 * encontrar conceitos que sao alvos de ISA, ordenados por grau
-	 * 
-	 * @param graph
-	 * @return
-	 */
-	private static HashSet<String> getConceptsTargetOfISA(StringGraph graph) {
+	private static HashSet<String> getDirectedConceptsOfRelation(StringGraph graph, String relation, boolean outgoing, int threshold) {
 		ObjectCounter<String> conceptDegree = new ObjectCounter<>();
 		ObjectOpenHashSet<String> closedSet = new ObjectOpenHashSet<>();
-		// HashSet<String> closedSet = new HashSet<>();
+		// find a concept that
 		for (String concept : graph.getVertexSet()) {
 			if (closedSet.contains(concept)) {
 				continue;
 			}
-			// must be a target of an ISA edge
-			Set<StringEdge> ie = graph.incomingEdgesOf(concept, "isa");
+			// must be a target/source of the relation
+			Set<StringEdge> ie;
+			if (outgoing) {
+				ie = graph.outgoingEdgesOf(concept, relation);
+			} else {
+				ie = graph.incomingEdgesOf(concept, relation);
+			}
 			if (ie.isEmpty()) {
 				continue;
 			}
-			int degreeOf = graph.degreeOf(concept);
+			int degreeOf = ie.size();
 			conceptDegree.addObject(concept, degreeOf);
 			closedSet.add(concept);
 		}
@@ -667,10 +670,10 @@ public class ConceptNetStudy {
 		HashSet<String> concepts = new HashSet<>();
 		for (ObjectCount<String> count : sortedCount) {
 			String concept = count.getId();
-			int countInt = count.getCount();
-			if (countInt < 100)
+			int degree = count.getCount();
+			if (degree < threshold)
 				break;
-			System.out.printf("%s\t%d\t%d\t%d\n", concept, countInt, graph.getInDegree(concept), graph.getOutDegree(concept));
+			System.out.printf("%s\t%d\n", concept, degree);
 			concepts.add(concept);
 		}
 		return concepts;
@@ -806,7 +809,6 @@ public class ConceptNetStudy {
 	}
 
 	private static void studyEdgeLabels(StringGraph graph, String concepti) {
-
 		// count number of edges of each label connected to the given concept
 		ObjectCounter<String> labelCounter = new ObjectCounter<>();
 		Set<StringEdge> edges;
@@ -820,7 +822,21 @@ public class ConceptNetStudy {
 		}
 
 		labelCounter.toSystemOut();
+	}
 
+	private static void studyConcepts(StringGraph graph) {
+		ObjectCounter<String> degreeCounter = new ObjectCounter<>();
+		for (String concept : graph.getVertexSet()) {
+			degreeCounter.addObject(concept, graph.degreeOf(concept));
+		}
+		ArrayList<ObjectCount<String>> sortedCount = degreeCounter.getSortedCount();
+		for (ObjectCount<String> oc : sortedCount) {
+			String concept = oc.getId();
+			int inDegree = graph.getInDegree(concept);
+			int outDegree = graph.getOutDegree(concept);
+			int degree = oc.getCount();
+			System.out.printf("%s\t%d\t%d\t%d\n", concept, degree, inDegree, outDegree);
+		}
 	}
 
 	public static void memoryUsage() {
