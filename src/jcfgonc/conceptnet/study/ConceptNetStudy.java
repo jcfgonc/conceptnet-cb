@@ -24,23 +24,16 @@ import stream.StreamProcessor;
 import stream.StreamService;
 import structures.ObjectCount;
 import structures.ObjectCounter;
-import structures.ObjectIndex;
-import structures.Ticker;
 import utils.RawConsoleInput;
 import utils.VariousUtils;
 
 @SuppressWarnings("unused")
 public class ConceptNetStudy {
 	public static void main(String[] args) throws Exception {
-		Ticker ticker = new Ticker();
-		String path = "D:\\Desktop\\Java - PhD\\BlenderMO\\data\\conceptnet5v44.csv";
-
+		String path = "kb/conceptnet5v45.csv";
 		StringGraph graph = new StringGraph();
-
-		System.out.println("loading... " + path);
-
-		ticker.getTimeDeltaLastCall();
 		GraphReadWrite.readCSV(path, graph);
+
 //		ObjectIndex<String> vertexLabels = new ObjectIndex<>();
 //		ObjectIndex<String> relationLabels = new ObjectIndex<>();
 //		GraphAlgorithms.convertStringGraph2IntDirectedMultiGraph(graph, vertexLabels, relationLabels);
@@ -53,7 +46,32 @@ public class ConceptNetStudy {
 		// showRelationCount(graph);
 //		System.out.println("-------");
 		// studyConcepts(graph);
-		getDirectedConceptsOfRelation(graph, "hassubevent", false, 2);
+//		getDirectedConceptsOfRelation(graph, "hassubevent", false, 2);
+
+		ArrayList<String> concepts = new ArrayList<>();
+
+		for (String concept : graph.getVertexSet()) {
+		//	if (concept.startsWith("your_"))
+			if(concept.endsWith("_in"))
+				concepts.add(concept);
+		}
+
+		concepts.sort(new Comparator<String>() {
+
+			@Override
+			public int compare(String o1, String o2) {
+				int nwords1 = VariousUtils.fastSplit(o1, '_').length;
+				int nwords2 = VariousUtils.fastSplit(o2, '_').length;
+				return Integer.compare(nwords1, nwords2);
+			}
+		});
+
+		for (String concept : concepts) {
+			System.out.println(concept);
+		}
+
+		// generaliseTransitivity(graph, "createdby");
+//		GraphReadWrite.writeCSV(path, graph);
 //		showRelationCount(graph);
 //		System.out.println("-------");
 //		studyDegree(graph);
@@ -74,6 +92,37 @@ public class ConceptNetStudy {
 		// ticker.getTimeDeltaLastCall();
 		// GraphReadWrite.writeCSV("output.csv", graph);
 		// System.out.println(ticker.getTimeDeltaLastCall());
+	}
+
+	private static void generaliseTransitivity(StringGraph graph, String relation) {
+		HashSet<StringEdge> edgesToRemove = new HashSet<>();
+		Set<StringEdge> edgesA;
+		for (StringEdge edge0 : graph.edgeSet(relation)) { // X,isa,Y
+			String conceptX = edge0.getSource();
+			String conceptY = edge0.getTarget();
+			if (edge0.getLabel().equals(relation)) { // <- isto parece desnecessario
+				Set<StringEdge> edges1 = graph.outgoingEdgesOf(conceptY, relation);
+				if (!edges1.isEmpty()) {
+					for (StringEdge edge1 : edges1) {
+						String conceptZ = edge1.getTarget();
+						StringEdge edge2 = new StringEdge(conceptX, conceptZ, relation);
+						if (graph.containsEdge(edge2)) {
+							edgesToRemove.add(edge2);
+							System.out.println("remove: " + edge2);
+						}
+					}
+				}
+			}
+
+//			System.out.println(edge0 + "\t" + conceptX + "\t" + graph.getInDegree(conceptX) + "\t" + graph.getOutDegree(conceptX));
+		}
+
+		graph.removeEdges(edgesToRemove);
+
+//		edgesA = graph.outgoingEdgesOf(conceptA);
+//		for (StringEdge edgeA : edgesA) {
+//			System.out.println(edgeA);
+//		}
 	}
 
 	private static HashSet<String> extractRandomPart(StringGraph graph, int minNewConceptsTrigger, int minTotalConceptsTrigger) {
