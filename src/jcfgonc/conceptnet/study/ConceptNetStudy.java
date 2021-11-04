@@ -34,6 +34,10 @@ public class ConceptNetStudy {
 		StringGraph graph = new StringGraph();
 		GraphReadWrite.readCSV(path, graph);
 
+		GraphAlgorithms.shortestPathSearch(graph, "mollusca", "crater");
+		System.out.println(GraphAlgorithms.getDistance(graph, "mollusca", "crater", 1000));
+		System.exit(0);
+
 //		ObjectIndex<String> vertexLabels = new ObjectIndex<>();
 //		ObjectIndex<String> relationLabels = new ObjectIndex<>();
 //		GraphAlgorithms.convertStringGraph2IntDirectedMultiGraph(graph, vertexLabels, relationLabels);
@@ -51,8 +55,8 @@ public class ConceptNetStudy {
 		ArrayList<String> concepts = new ArrayList<>();
 
 		for (String concept : graph.getVertexSet()) {
-		//	if (concept.startsWith("your_"))
-			if(concept.endsWith("_in"))
+			// if (concept.startsWith("your_"))
+			if (concept.endsWith("_in"))
 				concepts.add(concept);
 		}
 
