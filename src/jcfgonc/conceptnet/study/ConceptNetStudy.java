@@ -34,8 +34,16 @@ public class ConceptNetStudy {
 		StringGraph graph = new StringGraph();
 		GraphReadWrite.readCSV(path, graph);
 
-		GraphAlgorithms.shortestPathSearch(graph, "mollusca", "crater");
-		System.out.println(GraphAlgorithms.getDistance(graph, "mollusca", "crater", 1000));
+		ArrayList<String> fields = VariousUtils.readFileRows("F:\\Desktop\\concept fields to be ISAs.txt");
+//		correctFieldTargetToIsa(graph, fields);
+//		GraphReadWrite.writeCSV(path, graph);
+		for (String field : fields) {
+			Set<StringEdge> out = graph.outgoingEdgesOf(field, "isa");
+			System.out.println(field + "\t" + out);
+		}
+
+//		GraphAlgorithms.shortestPathSearch(graph, "mollusca", "crater");
+//		System.out.println(GraphAlgorithms.getDistance(graph, "mollusca", "crater", 1000));
 		System.exit(0);
 
 //		ObjectIndex<String> vertexLabels = new ObjectIndex<>();
@@ -96,6 +104,27 @@ public class ConceptNetStudy {
 		// ticker.getTimeDeltaLastCall();
 		// GraphReadWrite.writeCSV("output.csv", graph);
 		// System.out.println(ticker.getTimeDeltaLastCall());
+	}
+
+	/**
+	 * renames all the edges which have "field" as a label and the given "field" as a target to "isa" field target.
+	 * 
+	 * @param graph
+	 * @param fields
+	 */
+	private static void correctFieldTargetToIsa(StringGraph graph, ArrayList<String> fields) {
+		for (String field : fields) {
+			correctFieldTargetToIsa(graph, field);
+		}
+	}
+
+	private static void correctFieldTargetToIsa(StringGraph graph, String field) {
+		Set<StringEdge> edgesToChange = graph.incomingEdgesOf(field, "field");
+		graph.removeEdges(edgesToChange);
+		for (StringEdge newEdge : edgesToChange) {
+			newEdge = newEdge.replaceLabel("isa");
+			graph.addEdge(newEdge);
+		}
 	}
 
 	private static void generaliseTransitivity(StringGraph graph, String relation) {
