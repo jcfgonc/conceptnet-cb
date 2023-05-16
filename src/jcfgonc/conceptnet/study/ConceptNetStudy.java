@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -33,18 +34,36 @@ public class ConceptNetStudy {
 		String path = "kb/conceptnet5v45.csv";
 		StringGraph graph = new StringGraph();
 		GraphReadWrite.readCSV(path, graph);
+//		
+//		removeConceptsWithDegreeBelow(graph, "settlement", 4);
+		
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		while (true) {
+			String source = reader.readLine();
+			if (source.equals("quit"))
+				break;
+			graph.removeVertex(source);
+		}
+		reader.close();
 
-		ArrayList<String> fields = VariousUtils.readFileRows("F:\\Desktop\\concept fields to be ISAs.txt");
+		GraphAlgorithms.removeSmallerComponents(graph);
+
+//		String label = "isa";
+//		studyTargetDegree(graph, label);
+//		System.exit(0);
+//		removeEdgesConsole(graph);
+
+//		ArrayList<String> fields = VariousUtils.readFileRows("F:\\Desktop\\concept fields to be ISAs.txt");
 //		correctFieldTargetToIsa(graph, fields);
 //		GraphReadWrite.writeCSV(path, graph);
-		for (String field : fields) {
-			Set<StringEdge> out = graph.outgoingEdgesOf(field, "isa");
-			System.out.println(field + "\t" + out);
-		}
+//		for (String field : fields) {
+//			Set<StringEdge> out = graph.outgoingEdgesOf(field, "isa");
+//			System.out.println(field + "\t" + out);
+//		}
 
 //		GraphAlgorithms.shortestPathSearch(graph, "mollusca", "crater");
 //		System.out.println(GraphAlgorithms.getDistance(graph, "mollusca", "crater", 1000));
-		System.exit(0);
+//		System.exit(0);
 
 //		ObjectIndex<String> vertexLabels = new ObjectIndex<>();
 //		ObjectIndex<String> relationLabels = new ObjectIndex<>();
@@ -57,33 +76,52 @@ public class ConceptNetStudy {
 		// System.out.println("edges \t" + graph.edgeSet().size());
 		// showRelationCount(graph);
 //		System.out.println("-------");
-		// studyConcepts(graph);
+//		showConceptsDegree(graph);
+//		System.exit(0);
 //		getDirectedConceptsOfRelation(graph, "hassubevent", false, 2);
 
-		ArrayList<String> concepts = new ArrayList<>();
-
-		for (String concept : graph.getVertexSet()) {
-			// if (concept.startsWith("your_"))
-			if (concept.endsWith("_in"))
-				concepts.add(concept);
-		}
-
-		concepts.sort(new Comparator<String>() {
-
-			@Override
-			public int compare(String o1, String o2) {
-				int nwords1 = VariousUtils.fastSplit(o1, '_').length;
-				int nwords2 = VariousUtils.fastSplit(o2, '_').length;
-				return Integer.compare(nwords1, nwords2);
-			}
-		});
-
-		for (String concept : concepts) {
-			System.out.println(concept);
-		}
+//		ArrayList<String> concepts = new ArrayList<>();
+//
+//		for (String concept : graph.getVertexSet()) {
+//			// if (concept.startsWith("your_"))
+//			if (concept.endsWith("_in"))
+//				concepts.add(concept);
+//		}
+//
+//		concepts.sort(new Comparator<String>() {
+//
+//			@Override
+//			public int compare(String o1, String o2) {
+//				int nwords1 = VariousUtils.fastSplit(o1, '_').length;
+//				int nwords2 = VariousUtils.fastSplit(o2, '_').length;
+//				return Integer.compare(nwords1, nwords2);
+//			}
+//		});
+//
+//		for (String concept : concepts) {
+//			System.out.println(concept);
+//		}
 
 		// generaliseTransitivity(graph, "createdby");
-//		GraphReadWrite.writeCSV(path, graph);
+
+//		String target = "television show";
+//		String label = "isa";
+//	//	studyDegree(graph, label, target);
+//	//	System.exit(0);
+//
+//		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+//		while (true) {
+//			String source = reader.readLine();
+//			if (source.equals("quit"))
+//				break;
+//			StringEdge e = new StringEdge(source, target, label);
+//			graph.removeEdge(e);
+//		}
+//		reader.close();
+
+//		generaliseTransitivity(graph, "partof");
+
+		GraphReadWrite.writeCSV(path, graph);
 //		showRelationCount(graph);
 //		System.out.println("-------");
 //		studyDegree(graph);
@@ -94,7 +132,7 @@ public class ConceptNetStudy {
 			// prepareGraph(graph);
 			// studyEdges(graph);
 			// graph.removeEdges(GraphReadWrite.loadEdgesFromFile("edgesToRemove2.csv"));
-			// removeSmallerComponents(graph);
+			// removeSmaller2ents(graph);
 			// removeDisconnectedEdges(graph);
 			// removeRelationsWithLabel(graph, "isa");
 			// HashSet<String> part = extractRandomPart(graph);
@@ -104,6 +142,21 @@ public class ConceptNetStudy {
 		// ticker.getTimeDeltaLastCall();
 		// GraphReadWrite.writeCSV("output.csv", graph);
 		// System.out.println(ticker.getTimeDeltaLastCall());
+	}
+
+	private static void removeEdgesConsole(StringGraph graph) throws IOException {
+//		ArrayList<StringEdge> toRemove = new ArrayList<StringEdge>();
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+		while (true) {
+			String line = reader.readLine().trim();
+			if (line.isEmpty())
+				continue;
+			if (line.equals("quit"))
+				break;
+			StringEdge e = new StringEdge(line, StringEdge.CSV_ORDER_SOURCE_LABEL_TARGET);
+			graph.removeEdge(e);
+		}
+		reader.close();
 	}
 
 	/**
@@ -129,20 +182,17 @@ public class ConceptNetStudy {
 
 	private static void generaliseTransitivity(StringGraph graph, String relation) {
 		HashSet<StringEdge> edgesToRemove = new HashSet<>();
-		Set<StringEdge> edgesA;
 		for (StringEdge edge0 : graph.edgeSet(relation)) { // X,isa,Y
 			String conceptX = edge0.getSource();
 			String conceptY = edge0.getTarget();
-			if (edge0.getLabel().equals(relation)) { // <- isto parece desnecessario
-				Set<StringEdge> edges1 = graph.outgoingEdgesOf(conceptY, relation);
-				if (!edges1.isEmpty()) {
-					for (StringEdge edge1 : edges1) {
-						String conceptZ = edge1.getTarget();
-						StringEdge edge2 = new StringEdge(conceptX, conceptZ, relation);
-						if (graph.containsEdge(edge2)) {
-							edgesToRemove.add(edge2);
-							System.out.println("remove: " + edge2);
-						}
+			Set<StringEdge> edges1 = graph.outgoingEdgesOf(conceptY, relation);
+			if (!edges1.isEmpty()) {
+				for (StringEdge edge1 : edges1) {
+					String conceptZ = edge1.getTarget();
+					StringEdge edge2 = new StringEdge(conceptX, conceptZ, relation);
+					if (graph.containsEdge(edge2)) {
+						edgesToRemove.add(edge2);
+						System.out.println("removing\t" + edge2 + "\t::\t" + edge1);
 					}
 				}
 			}
@@ -150,12 +200,8 @@ public class ConceptNetStudy {
 //			System.out.println(edge0 + "\t" + conceptX + "\t" + graph.getInDegree(conceptX) + "\t" + graph.getOutDegree(conceptX));
 		}
 
-		graph.removeEdges(edgesToRemove);
-
-//		edgesA = graph.outgoingEdgesOf(conceptA);
-//		for (StringEdge edgeA : edgesA) {
-//			System.out.println(edgeA);
-//		}
+		// graph.removeEdges(edgesToRemove);
+		System.out.printf("removed %d edges\n", edgesToRemove.size());
 	}
 
 	private static HashSet<String> extractRandomPart(StringGraph graph, int minNewConceptsTrigger, int minTotalConceptsTrigger) {
@@ -428,9 +474,6 @@ public class ConceptNetStudy {
 		}
 		return sum;
 	}
-
-	// private static ReentrantReadWriteLock generalizeFromSequenceLock = new
-	// ReentrantReadWriteLock();
 
 	private static void generalizeFromSequence(StringGraph graph, ArrayList<String> sequence, boolean fullGeneralizer, boolean useInferencer) {
 		String concept0 = sequence.get(0);
@@ -726,6 +769,32 @@ public class ConceptNetStudy {
 		degreeCounter.toSystemOut();
 	}
 
+	private static void studyTargetDegree(StringGraph graph, String label, String target) {
+		Set<StringEdge> in = graph.incomingEdgesOf(target, label);
+		ObjectCounter<String> degreeCounter = new ObjectCounter<>();
+		for (StringEdge edge : in) {
+			String source = edge.getSource();
+			if (degreeCounter.containsObject(source))
+				continue;
+			int degree = graph.degreeOf(source);
+			degreeCounter.setCount(source, degree);
+		}
+		degreeCounter.toSystemOut();
+	}
+
+	private static void studyTargetDegree(StringGraph graph, String label) {
+		Set<StringEdge> in = graph.edgeSet(label);
+		ObjectCounter<String> degreeCounter = new ObjectCounter<>();
+		for (StringEdge edge : in) {
+			String target = edge.getTarget();
+			if (degreeCounter.containsObject(target))
+				continue;
+			int degree = graph.degreeOf(target);
+			degreeCounter.setCount(target, degree);
+		}
+		degreeCounter.toSystemOut();
+	}
+
 	private static HashSet<String> getDirectedConceptsOfRelation(StringGraph graph, String relation, boolean outgoing, int threshold) {
 		ObjectCounter<String> conceptDegree = new ObjectCounter<>();
 		ObjectOpenHashSet<String> closedSet = new ObjectOpenHashSet<>();
@@ -829,7 +898,7 @@ public class ConceptNetStudy {
 		graph.removeEdges(toRemove);
 	}
 
-	private static void removeConceptsWithDegreeBelow(StringGraph graph, String typeOfConcept, int threshold) {
+	private static void removeConceptsWithDegreeBelow(StringGraph graph, String typeOfConcept, int threshold) { 
 
 		ArrayList<String> conceptsToRemove = new ArrayList<>();
 		Set<StringEdge> isaConcept = graph.incomingEdgesOf(typeOfConcept, "isa");
@@ -906,7 +975,7 @@ public class ConceptNetStudy {
 		labelCounter.toSystemOut();
 	}
 
-	private static void studyConcepts(StringGraph graph) {
+	private static void showConceptsDegree(StringGraph graph) {
 		ObjectCounter<String> degreeCounter = new ObjectCounter<>();
 		for (String concept : graph.getVertexSet()) {
 			degreeCounter.addObject(concept, graph.degreeOf(concept));
