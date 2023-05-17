@@ -1,11 +1,11 @@
 # Introduction
 
-This repository contains a customized version of the semantic network/knowledge graph/base [ConceptNet V5](https://conceptnet.io) used by me during my PhD in Computational Creativity and by my associates.
+This repository contains a customized version of the semantic network/knowledge graph/base [ConceptNet V5](https://conceptnet.io) used by me and by my colleagues during my PhD in Computational Creativity .
 
-The graph itself is stored inside the folder kb as a straigthforward parsable CSV (comma separated value) text file. Each line/row of the file is in the format source,relation,target (e.g., subject-verb-object style).
+The graph itself is stored inside the folder kb as a straightforward parsable CSV (comma separated value) text file. Each line/row of the file is in the format source,relation,target (e.g., subject-verb-object style).
 
 The majority of customization was in removing stuff I don't need for my research projects (in Conceptual Blending and computational analogy) such as:
-- non-english facts
+- non-English facts
 - many biased and controversial facts, such as political and gender issues, sexist remarks, funny (but wrong) statements and plainly wrong facts
 - facts about cities, towns, etc. (not of much use for computational creativity)
 
@@ -24,7 +24,7 @@ directory.
 
 # People
 
-I, João Gonçalves, am the only contributer to this work.
+I, João Gonçalves, am the only contributor to this work.
 
 Please email jcfgonc@gmail.com with questions, comments, and bug reports.
 
