@@ -2,7 +2,7 @@
 
 This repository contains a customized version of the semantic network/knowledge graph/base [ConceptNet V5](https://conceptnet.io) used by me and by my colleagues during my PhD in Computational Creativity .
 
-The graph itself is stored inside the folder kb as a straightforward parsable CSV (comma separated value) text file. Each line/row of the file is in the format source,relation,target (e.g., subject-verb-object style).
+The graph itself is stored inside the **kb** folder as a straightforward parsable CSV (comma separated value) text file. Each line/row of the file is in the format source,relation,target (e.g., subject-verb-object style).
 
 The majority of customization was in removing stuff I don't need for my research projects (in Conceptual Blending and computational analogy) such as:
 - non-English facts
@@ -11,7 +11,7 @@ The majority of customization was in removing stuff I don't need for my research
 
 I also added various facts about entities (animals, people, etc.) while I was doing my experiments and that I don't remember now.
 
-The folder src contains code I use to study/manipulate ConceptNet. Probably not of much use to anyone else.
+The folder **src** contains code I use to study/manipulate ConceptNet. Probably not of much use to anyone else.
 
 If you need to cite this work please use the following paper:
 
