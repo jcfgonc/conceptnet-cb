@@ -6,7 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +25,7 @@ import graph.StringGraph;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import stream.StreamProcessor;
 import stream.StreamService;
+import structures.MapOfSet;
 import structures.ObjectCount;
 import structures.ObjectCounter;
 import utils.RawConsoleInput;
@@ -31,26 +34,40 @@ import utils.VariousUtils;
 @SuppressWarnings("unused")
 public class ConceptNetStudy {
 	public static void main(String[] args) throws Exception {
-		String path = "kb/conceptnet5v45.csv";
+		String path = "D:\\My Source Code\\Java - PhD\\MapperMO\\data\\mykb.csv";
 		StringGraph graph = new StringGraph();
 		GraphReadWrite.readCSV(path, graph);
+
+//		 propagateSuperInferences(graph);
+
+		// painter to file transfer protocol
+//		GraphAlgorithms.reachableUsingISA(graph, "painter", "file transfer protocol");
+//		removeProfanity(graph);
+		GraphAlgorithms.propagateRelationsThroughInheritance(graph);
+	//	GraphReadWrite.writeCSV(path, graph);
+
+//		HashSet<String> rootsIsa = findRootIsaConcepts(graph);
+//		MapOfSet<String, String> synonyms = findSynonyms(graph);
+		System.exit(0);
 //		
 //		removeConceptsWithDegreeBelow(graph, "settlement", 4);
-		
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		while (true) {
-			String source = reader.readLine();
-			if (source.equals("quit"))
-				break;
-			graph.removeVertex(source);
-		}
-		reader.close();
 
-		GraphAlgorithms.removeSmallerComponents(graph);
+		// to manually remove concepts
+//		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+//		while (true) {
+//			String source = reader.readLine();
+//			if (source.equals("quit"))
+//				break;
+//			graph.removeVertex(source);
+//		}
+//		reader.close();
 
-//		String label = "isa";
-//		studyTargetDegree(graph, label);
-//		System.exit(0);
+//		GraphAlgorithms.removeSmallerComponents(graph);
+
+		String label = "isa";
+
+		studyTargetDegree(graph, label);
+		System.exit(0);
 //		removeEdgesConsole(graph);
 
 //		ArrayList<String> fields = VariousUtils.readFileRows("F:\\Desktop\\concept fields to be ISAs.txt");
@@ -144,6 +161,123 @@ public class ConceptNetStudy {
 		// System.out.println(ticker.getTimeDeltaLastCall());
 	}
 
+	private static void removeProfanity(StringGraph graph) {
+		ArrayList<String> profaneList = VariousUtils
+				.readFileRows("D:/My Source Code/Java - PhD/MapperMO/data/english profanity.txt");
+		ArrayList<List<String>> profaneSentenceWords = new ArrayList<List<String>>();
+		for (String profaneSentence : profaneList) {
+			List<String> profaneWords = Arrays.asList(profaneSentence.split(" "));
+			profaneSentenceWords.add(profaneWords);
+		}
+
+		ArrayList<String> conceptsToRemove = new ArrayList<String>();
+
+		Set<String> concepts = graph.getVertexSet();
+		for (String concept : concepts) {
+			if (isProfane(concept, profaneSentenceWords)) {
+				conceptsToRemove.add(concept);
+			}
+		}
+
+		graph.removeVertices(conceptsToRemove);
+	}
+
+	private static boolean isProfane(String concept, ArrayList<List<String>> profaneSentenceWords) {
+		List<String> conceptWords = Arrays.asList(concept.split(" "));
+		// see if any of the profane word sequence is contained in the concept
+		for (List<String> profaneWords : profaneSentenceWords) {
+			int i = Collections.indexOfSubList(conceptWords, profaneWords);
+			if (i >= 0) {
+				System.out.printf("\"%s\" is profane because it contains %s\n", concept, profaneWords);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * propagates relations from ancestors (via ISA relations) to their children
+	 * 
+	 * old version, works bottom up and incompletely!
+	 * 
+	 * @param graph
+	 */
+	private static void propagateSuperInferences(StringGraph graph) {
+//		graph.addEdge("predator","life form","desires");
+
+		// propagate super inferences
+		ArrayList<StringEdge> edgesToAdd = new ArrayList<StringEdge>();
+
+		MapOfSet<String, String> synonyms = new MapOfSet<String, String>();
+
+		// for (String x : graph.getVertexSet()) {
+		String x = "person";
+		{
+			Set<StringEdge> out = graph.outgoingEdgesOf(x, "isa");
+			Set<StringEdge> synedges = graph.outgoingEdgesOf(x, "synonym");
+			for (StringEdge syned : synedges) {
+				synonyms.add(x, syned.getOppositeOf(x));
+			}
+			out.addAll(synedges);
+
+			for (StringEdge x_y : out) {
+				String y = x_y.getTarget();
+				for (StringEdge superEdge : graph.edgesOf(y)) {
+					if (superEdge.equals(x_y))
+						continue;
+					String source = superEdge.getSource();
+					String target = superEdge.getTarget();
+					String relation = superEdge.getLabel();
+					// inferences valid for the relation form y,relation,z
+					if (source.equals(y)) {
+						switch (relation) {
+						case "isa":
+						case "capableof":
+						case "partof":
+						case "causes":
+						case "desires":
+						case "atlocation":
+						case "usedfor":
+						case "madeof":
+						case "requires":
+						case "hasproperty":
+						case "definedas":
+						case "notdesires":
+						case "createdby":
+						case "hasprerequisite":
+							StringEdge inference = new StringEdge(x, target, relation);
+							System.out.println(inference);
+							edgesToAdd.add(inference);
+							break;
+						case "synonym":
+						case "antonym":
+						case "receivesaction":
+							break;
+						default:
+							System.out.println("missing relation: " + superEdge.getLabel() + "\t" + superEdge);
+							break;
+						}
+					}
+					// inferences valid for the relation form z,relation,y
+					if (target.equals(y)) {
+						switch (relation) {
+						case "partof":
+							StringEdge inference = new StringEdge(source, x, relation);
+							System.out.println(inference);
+							edgesToAdd.add(inference);
+							break;
+						default:
+							System.out.println("missing relation: " + superEdge.getLabel() + "\t" + superEdge);
+							break;
+						}
+					}
+
+					System.lineSeparator();
+				}
+			}
+		}
+	}
+
 	private static void removeEdgesConsole(StringGraph graph) throws IOException {
 //		ArrayList<StringEdge> toRemove = new ArrayList<StringEdge>();
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -160,7 +294,8 @@ public class ConceptNetStudy {
 	}
 
 	/**
-	 * renames all the edges which have "field" as a label and the given "field" as a target to "isa" field target.
+	 * renames all the edges which have "field" as a label and the given "field" as
+	 * a target to "isa" field target.
 	 * 
 	 * @param graph
 	 * @param fields
@@ -204,7 +339,8 @@ public class ConceptNetStudy {
 		System.out.printf("removed %d edges\n", edgesToRemove.size());
 	}
 
-	private static HashSet<String> extractRandomPart(StringGraph graph, int minNewConceptsTrigger, int minTotalConceptsTrigger) {
+	private static HashSet<String> extractRandomPart(StringGraph graph, int minNewConceptsTrigger,
+			int minTotalConceptsTrigger) {
 		// just get a vertex
 		RandomGenerator random = new Well44497b();
 		String firstVertex = VariousUtils.getRandomElementFromCollection(graph.getVertexSet(), random);
@@ -286,7 +422,8 @@ public class ConceptNetStudy {
 
 	}
 
-	private static void prepareGraph(StringGraph graph) throws InterruptedException, FileNotFoundException, IOException {
+	private static void prepareGraph(StringGraph graph)
+			throws InterruptedException, FileNotFoundException, IOException {
 		// String vertex0 = "eukaryote"; //
 		// String vertex1 = "specie";
 		// displayCollection(graph.outgoingEdgesOf(vertex0, "isa"));
@@ -358,7 +495,8 @@ public class ConceptNetStudy {
 		targetIsa.toSystemOut();
 	}
 
-	private static void generalizeGraphShorter(StringGraph graph) throws InterruptedException, FileNotFoundException, IOException {
+	private static void generalizeGraphShorter(StringGraph graph)
+			throws InterruptedException, FileNotFoundException, IOException {
 		List<String> isaConcepts = GraphReadWrite.loadConceptsFromFile("isaConcepts.txt");
 		// HashSet<String> isaConcepts = getConceptsTargetOfISA(graph);
 
@@ -475,7 +613,8 @@ public class ConceptNetStudy {
 		return sum;
 	}
 
-	private static void generalizeFromSequence(StringGraph graph, ArrayList<String> sequence, boolean fullGeneralizer, boolean useInferencer) {
+	private static void generalizeFromSequence(StringGraph graph, ArrayList<String> sequence, boolean fullGeneralizer,
+			boolean useInferencer) {
 		String concept0 = sequence.get(0);
 		String rel0 = sequence.get(1);
 		String rel1 = sequence.get(3);
@@ -563,7 +702,8 @@ public class ConceptNetStudy {
 				toChange = incomingOld;
 			} else {
 				Set<StringEdge> incomingNew = graph.incomingEdgesOf(newConcept, "isa");
-				toChange = GraphAlgorithms.getEdgesWithSources(incomingOld, GraphAlgorithms.getEdgesSourcesAsSet(incomingNew));
+				toChange = GraphAlgorithms.getEdgesWithSources(incomingOld,
+						GraphAlgorithms.getEdgesSourcesAsSet(incomingNew));
 			}
 			// generalizeFromSequenceLock.readLock().unlock();
 
@@ -674,7 +814,8 @@ public class ConceptNetStudy {
 		br.close();
 	}
 
-	private static ArrayList<ArrayList<String>> sequenceDetector(StringGraph graph, String refConcept, double generalizationThreshold) {
+	private static ArrayList<ArrayList<String>> sequenceDetector(StringGraph graph, String refConcept,
+			double generalizationThreshold) {
 		ArrayList<ArrayList<String>> sequencesToGeneralize = new ArrayList<>();
 		ArrayList<ObjectCount<ArrayList<String>>> sortedCount;
 		// do the sequence counting
@@ -795,7 +936,8 @@ public class ConceptNetStudy {
 		degreeCounter.toSystemOut();
 	}
 
-	private static HashSet<String> getDirectedConceptsOfRelation(StringGraph graph, String relation, boolean outgoing, int threshold) {
+	private static HashSet<String> getDirectedConceptsOfRelation(StringGraph graph, String relation, boolean outgoing,
+			int threshold) {
 		ObjectCounter<String> conceptDegree = new ObjectCounter<>();
 		ObjectOpenHashSet<String> closedSet = new ObjectOpenHashSet<>();
 		// find a concept that
@@ -898,7 +1040,7 @@ public class ConceptNetStudy {
 		graph.removeEdges(toRemove);
 	}
 
-	private static void removeConceptsWithDegreeBelow(StringGraph graph, String typeOfConcept, int threshold) { 
+	private static void removeConceptsWithDegreeBelow(StringGraph graph, String typeOfConcept, int threshold) {
 
 		ArrayList<String> conceptsToRemove = new ArrayList<>();
 		Set<StringEdge> isaConcept = graph.incomingEdgesOf(typeOfConcept, "isa");
